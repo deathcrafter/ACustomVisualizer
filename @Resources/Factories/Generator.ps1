@@ -243,7 +243,7 @@ function PrepareBackup {
     Start-Sleep -Milliseconds 200
     Copy-Item -Path $($varPath+'Measures\*.inc') -Destination $($skinPath+"@Backup\$directory\Measures") -Recurse
     Start-Sleep -Milliseconds 200
-    Copy-Item -Path $($varPath+'*.inc') -Destination $($skinPath+"@Backup\$directory\Measures") -Recurse
+    Copy-Item -Path $($varPath+'*.inc') -Destination $($skinPath+"@Backup\$directory") -Recurse
     $RmAPI.Log('Backup complete!')
     Purge
 }
