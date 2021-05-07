@@ -19,6 +19,7 @@ function Craft{
         Start-Sleep -Milliseconds 1000
         CreateMeasures
         $RmAPI.Bang("!WriteKeyValue Variables Initiated 0")
+        $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
         $RmAPI.Bang("!Refresh")
     }
 }
@@ -26,7 +27,7 @@ function Change{
     MakeVisualizers
     Start-Sleep -Milliseconds 1000
     CreateMeasures
-    $RmAPI.Bang("!Refresh")
+    $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
 }
 function CreateVariables{
     $groupCount = $RmAPI.Variable('GroupCount')
@@ -35,8 +36,10 @@ function CreateVariables{
 
     $RmAPI.Log('Creating variables...')
 
+    $existingCount = (Get-ChildItem -Path $($varPath + 'Variables')).Count
+
 #Creates variables for each group.
-    for ($i=0; $i -lt $groupCount; $i++) {
+    for ($i=$existingCount; $i -lt $groupCount; $i++) {
         $variables=@"
 [Variables]
 Group=$i
@@ -49,11 +52,9 @@ WidthG$i=12
 GapG$i=6
 StrokeWidthG$i=0
 RoundingG$i=3
-LevitateG$i=10
 XFlipG$i=0
 AngleG$i=0
 MinimumHeightG$i=10
-ImageNameG$i=
 ColorG$i=150, 200, 250
 GradientG$i=180 | 255,0,0;0.0 | 150,200,250;1.0
 GradientBoolG$i=0
@@ -86,12 +87,12 @@ Y=[#YG$i]
             if ($j -eq 0) {
                 $visContent+=@"
 
-Shape=Rectangle 0,([#HeightG$i]+2*[#StrokeWidthG$i]-[#LevitateG$i]), [#WidthG$i],(Clamp((-[#HeightG$i]*$($measureHash["G$i$j"])), -[#HeightG$i], [#MinimumHeightG$i])), [#RoundingG$i] | StrokeWidth #StrokeWidthG$i# | Extend Color[#GradientBoolG$i]
+Shape=Rectangle 0,([#HeightG$i]+2*[#StrokeWidthG$i]), [#WidthG$i],(Clamp((-[#HeightG$i]*$($measureHash["G$i$j"])), -[#HeightG$i], -[#MinimumHeightG$i])), [#RoundingG$i] | StrokeWidth #StrokeWidthG$i# | Extend Color[#GradientBoolG$i]
 "@
             }else{
                 $visContent+=@"
 
-Shape$($j+1)=Rectangle ($j*([#WidthG$i]+[#GapG$i])),(#HeightG$i#+2*[#StrokeWidthG$i]-#LevitateG$i#), #WidthG$i#, (Clamp((-[#HeightG$i]*$($measureHash["G$i$j"])), -[#HeightG$i], [#MinimumHeightG$i])), [#RoundingG$i] | StrokeWidth #StrokeWidthG$i#
+Shape$($j+1)=Rectangle ($j*([#WidthG$i]+[#GapG$i])),(#HeightG$i#+2*[#StrokeWidthG$i]), #WidthG$i#, (Clamp((-[#HeightG$i]*$($measureHash["G$i$j"])), -[#HeightG$i], -[#MinimumHeightG$i])), [#RoundingG$i] | StrokeWidth #StrokeWidthG$i#
 "@
                 $visCombine+=" | Union Shape$($j+1)"
             }
@@ -119,9 +120,9 @@ function CreateMeasures {
 
     $measureCount = DecideBands -groupCount $groupCount
     
-    $RmAPI.Bang("!WriteKeyValue Variables Bands $measureCount `"@Resources\GlobalVariables.inc`"" )
+    $RmAPI.Bang("!WriteKeyValue Variables Bands $measureCount `"$($RmAPI.VariableStr('@')+'GlobalVariables.inc')`"" )
 
-    $RmAPI.Log('Creating measures...')
+    $RmAPI.Log('Creating measures...') 
 
     for ($i=0; $i -lt $groupCount; $i++) {
         $barCount = $RmAPI.Variable("BarCountG$i")
@@ -141,6 +142,7 @@ Type=Child
 Index=$($measureStart+$j)
 Channel=Auto
 HandlerName=MainFinalOutput
+Disabled=[#EditMode]
 
 "@       
             }
@@ -156,6 +158,7 @@ Type=Child
 Index=$(($measureStart+$barCount-1)-$j)
 Channel=Auto
 HandlerName=MainFinalOutput
+Disabled=[#EditMode]
 
 "@       
             }
@@ -181,7 +184,7 @@ function DecideBands {
     return $b.Maximum
 }
 function AssignMeasures {
-#This function assigns "key","value" pairs to 'measureHash' hashtable in MakeVisualizers function.
+#This function assigns "key","value" pairs to 'measureHash' hashtable in MakeVisualizers and CreateMeasures function.
     param(
         [Parameter(Mandatory = $true)]
         $groupCount
@@ -227,7 +230,7 @@ function PrepareIncludes{
 function PrepareBackup {
     $varPath = $RmAPI.VariableStr('@')
     $skinPath = $RmAPI.VariableStr('ROOTCONFIGPATH')
-    $directory = Get-Date -Format ddMMMy_hh-mm-ss
+    $directory = Get-Date -Format ddMMMy_HH-mm-ss
     $RmAPI.Log('Preparing directories...')
     New-Item -Path $($skinPath + '@Backup') -Name "$directory" -ItemType "Directory"
     New-Item -Path $($skinPath + "@Backup\$directory") -Name "Variables" -ItemType "Directory"
@@ -246,7 +249,52 @@ function PrepareBackup {
 }
 function Purge {
     $varPath = $RmAPI.VariableStr('@')
-    Remove-Item -Path $($varPath+'Variables\*.inc') -Force
-    Remove-Item -Path $($varPath+'Visualizers\*.inc') -Force
-    Remove-Item -Path $($varPath+'Measures\*.inc') -Force
+    $groupCount = $RmAPI.Variable('GroupCount')
+    
+    $existingCount = (Get-ChildItem -Path $($varPath + 'Variables')).Count
+    if ($existingCount -gt $groupCount) {
+        $RmAPI.Log('Purging previous files...')
+        for ($i=$groupCount; $i -lt $existingCount; $i++) { 
+            Remove-Item -Path $($varPath+"Variables\Variable$i.inc") -Force
+            Remove-Item -Path $($varPath+"Visualizers\Visualizer$i.inc") -Force
+            Remove-Item -Path $($varPath+"Measures\Measure$i.inc") -Force
+        }
+        $RmAPI.Log('Purging completed successfully!')
+    } 
+}
+function CompletePurge {
+    $varPath = $RmAPI.VariableStr('@')
+    PrepareBackup
+    $RmAPI.Log('Purging all files...')
+     
+    Remove-Item -Path $($varPath+"Variables\Variable$i.inc") -Force
+    Remove-Item -Path $($varPath+"Visualizers\Visualizer$i.inc") -Force
+    Remove-Item -Path $($varPath+"Measures\Measure$i.inc") -Force
+    
+    $RmAPI.Log('Purged all files successfully!')
+}
+function EnterEditMode{
+    $groupCount = $RmAPI.Variable('GroupCount')
+    for ($i=0; $i -lt $groupCount; $i++) {
+        $minimumHeight=$RmAPI.Variable("MinimumHeightG$i")
+        $RmAPI.Bang("!WriteKeyValue Variables EditMinimumHeightG$i $minimumHeight `"$($RmAPI.VariableStr('@')+'EditModeVars.inc')`"")
+        $RmAPI.Bang("!WriteKeyValue Variables MinimumHeightG$i [#HeightG$i] `"$($RmAPI.VariableStr('@')+"Variables\Variable$i.inc")`"")
+    }
+    $RmAPI.Bang("!WriteKeyValue Variables EditMode 1 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
+    $RmAPI.Bang("!WriteKeyValue Variables UpdateRate -1 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
+    $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
+    $RmAPI.Bang("!Refresh")
+}
+function ExitEditMode {
+    $varPath = $RmAPI.VariableStr('@')
+    $groupCount = $RmAPI.Variable('GroupCount')
+    for ($i=0; $i -lt $groupCount; $i++) {
+        $minimumHeight=$RmAPI.Variable("EditMinimumHeightG$i")
+        $RmAPI.Bang("!WriteKeyValue Variables MinimumHeightG$i $minimumHeight `"$($varPath+"Variables\Variable$i.inc")`"") 
+    }
+    Clear-Content -Path $($varPath + 'EditModeVars.inc') -Exclude '[Variables]'
+    $RmAPI.Bang("!WriteKeyValue Variables EditMode 0 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
+    $RmAPI.Bang("!WriteKeyValue Variables UpdateRate 16 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
+    $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
+    $RmAPI.Bang("!Refresh")
 }

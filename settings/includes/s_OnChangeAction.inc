@@ -1,4 +1,4 @@
 
 [Variables]
-s_OnChangeAction=[!Refresh "#ROOTCONFIGPATH#Visualizer"]
+s_OnChangeAction=[!Refresh "ACustomVisualizer\Visualizer"][!Refresh #ROOTCONFIG#"]
 

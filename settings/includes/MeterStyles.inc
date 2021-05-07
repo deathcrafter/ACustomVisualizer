@@ -80,9 +80,10 @@ FontColor=[#s_FontColor]
 [VarStringValue]
 AccurateText=1
 AntiAlias=1
+DynamicVariables=1
 Y=0R
 X=0r
-W=([#s_RightPanelW] - [#s_VariableXPadding] * 2)
+W=
 ClipString=2
 Padding=0,[#s_ValueYPadding],[#s_VariableXPadding],[#s_ValueYPadding]
 FontColor=[#s_FontColor]

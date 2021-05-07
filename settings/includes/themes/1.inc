@@ -10,9 +10,9 @@ s_RightPanelW=500
 ;?Integer | Name Skin height | Description 
 s_PanelH=600
 ;?Color | Name Right panel background color | Description 
-s_RightPanelBackgroundColor=26,26,38,125
+s_RightPanelBackgroundColor=51,5,74,125
 ;?Color | Name Left panel background color | Description 
-s_LeftPanelBackgroundColor=28,28,43,125
+s_LeftPanelBackgroundColor=6,54,51,125
 ;?Integer | Name Background corner radius | Description 
 s_BackgroundRounding=0
 ;? | Name FrostedGlass mode | Description A certain Windows 10 update made Acrylic lag a lot, so it's not recommended#CRLF#Available modes: Acrylic, Blur, None
