@@ -40,7 +40,7 @@ function CreateVariables{
         $variables=@"
 [Variables]
 Group=$i
-XG$i=R
+XG$i=6R
 YG$i=r
 MeasureStartG$i=1
 BarCountG$i=5
@@ -80,8 +80,6 @@ function MakeVisualizers {
 Meter=Shape
 X=[#XG$i]
 Y=[#YG$i]
-W=(Abs(Cos([#AngleG$i]%360*Pi/180))*(([#WidthG$i]+[#GapG$i])*[#BarCountG$i]-[#GapG$i])+Abs(Sin([#AngleG$i]%360*Pi/180))*([#HeightG$i]+[#LevitateG$i]))
-H=(Abs(Sin([#AngleG$i]%360*Pi/180))*(([#WidthG$i]+[#GapG$i])*[#BarCountG$i]-[#GapG$i])+Abs(Cos([#AngleG$i]%360*Pi/180))*([#HeightG$i]+[#LevitateG$i]))
 "@
         $visCombine="Combine Shape"
         for ($j=0; $j -lt $barCount; $j++) {
@@ -100,12 +98,11 @@ Shape$($j+1)=Rectangle ($j*([#WidthG$i]+[#GapG$i])),(#HeightG$i#+2*[#StrokeWidth
         }
         $visContent+=@"
 
-Shape$($barCount + 1)=$visCombine
+Shape$($barCount + 1)=$($visCombine + " | Rotate [#AngleG$i]") 
 Color0=Fill Color [#ColorG$i]
 Color1=Fill LinearGradient1 MyGradient
 MyGradient=[#GradientG$i]
 DynamicVariables=1
-TransformationMatrix=(Cos(-[#AngleG$i]%360*Pi/180));(-Sin(-[#AngleG$i]%360*Pi/180));(Sin(-[#AngleG$i]%360*Pi/180));(Cos(-[#AngleG$i]%360*Pi/180));(((90<[#AngleG$i]%360)&([#AngleG$i]%360<270)?Abs(Cos([#AngleG$i]%360*Pi/180))*(([#WidthG$i]+[#GapG$i])*[#BarCountG$i]-[#GapG$i]):0)+((0<[#AngleG$i]%360)&([#AngleG$i]%360<180)?Abs(Sin([#AngleG$i]%360*Pi/180))*([#HeightG$i]+[#LevitateG$i]):0));(((180<[#AngleG$i]%360)&([#AngleG$i]%360<360)?Abs(Sin([#AngleG$i]%360*Pi/180))*(([#WidthG$i]+[#GapG$i])*[#BarCountG$i]-[#GapG$i]):0)+((90<[#AngleG$i]%360)&([#AngleG$i]%360<270)?Abs(Cos([#AngleG$i]%360*Pi/180))*([#HeightG$i]+[#LevitateG$i]):0))
 "@
         $visContent | Out-File -FilePath $($varPath+"Visualizers\Visualizer$i.inc")
     }

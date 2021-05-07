@@ -1,5 +1,5 @@
 [Variables]
-Bands=5
+Bands=41
 ;@ | Name Equalizer Settings | Icon [\xF0ED]
 
 ;?Integer | Name Attack
@@ -12,7 +12,7 @@ Decay=0
 BlurRadius=0.5
 
 ;?Integer | Name Maximum Sensitivity
-MaxSensitivity=50
+MaxSensitivity=40
 
 ;?Integer | Name Minimum Sensitivity
 MinSensitivity=12
