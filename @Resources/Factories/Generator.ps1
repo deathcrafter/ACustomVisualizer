@@ -92,14 +92,14 @@ Shape=Rectangle 0,([#HeightG$i]+2*[#StrokeWidthG$i]), [#WidthG$i],(Clamp((-[#Hei
             }else{
                 $visContent+=@"
 
-Shape$($j+1)=Rectangle ($j*([#WidthG$i]+[#GapG$i])),(#HeightG$i#+2*[#StrokeWidthG$i]), #WidthG$i#, (Clamp((-[#HeightG$i]*$($measureHash["G$i$j"])), -[#HeightG$i], -[#MinimumHeightG$i])), [#RoundingG$i] | StrokeWidth #StrokeWidthG$i#
+Shape$($j+1)=Rectangle ($j*([#WidthG$i]+[#GapG$i])),(#HeightG$i#+[#StrokeWidthG$i]), #WidthG$i#, (Clamp((-[#HeightG$i]*$($measureHash["G$i$j"])), -[#HeightG$i], -[#MinimumHeightG$i])), [#RoundingG$i] | StrokeWidth #StrokeWidthG$i#
 "@
                 $visCombine+=" | Union Shape$($j+1)"
             }
         }
         $visContent+=@"
 
-Shape$($barCount + 1)=$($visCombine + " | Rotate [#AngleG$i]") 
+Shape$($barCount + 1)=$($visCombine + " | Rotate [#AngleG$i], 0, (#HeightG$i#+[#StrokeWidthG$i])") 
 Color0=Fill Color [#ColorG$i]
 Color1=Fill LinearGradient1 MyGradient
 MyGradient=[#GradientG$i]
@@ -278,7 +278,7 @@ function EnterEditMode{
     for ($i=0; $i -lt $groupCount; $i++) {
         $minimumHeight=$RmAPI.Variable("MinimumHeightG$i")
         $RmAPI.Bang("!WriteKeyValue Variables EditMinimumHeightG$i $minimumHeight `"$($RmAPI.VariableStr('@')+'EditModeVars.inc')`"")
-        $RmAPI.Bang("!WriteKeyValue Variables MinimumHeightG$i [#HeightG$i] `"$($RmAPI.VariableStr('@')+"Variables\Variable$i.inc")`"")
+        $RmAPI.Bang("!WriteKeyValue Variables MinimumHeightG$i `"[#*HeightG$i*]`" `"$($RmAPI.VariableStr('@')+"Variables\Variable$i.inc")`"")
     }
     $RmAPI.Bang("!WriteKeyValue Variables EditMode 1 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
     $RmAPI.Bang("!WriteKeyValue Variables UpdateRate -1 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")

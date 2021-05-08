@@ -1,0 +1,7 @@
+[Variables]
+EditMinimumHeightG0=10
+EditMinimumHeightG1=10
+EditMinimumHeightG2=10
+EditMinimumHeightG3=10
+EditMinimumHeightG4=10
+EditMinimumHeightG5=10

@@ -1,8 +1,8 @@
 [Variables]
 GroupCount=6
-EditMode=0
-UpdateRate=16
-Bands=10
+EditMode=1
+UpdateRate=-1
+Bands=32
 ;@About | Name xxx
 ;@Topic | Name xxx
 ;@ | Name xxx

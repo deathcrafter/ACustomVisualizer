@@ -60,6 +60,6 @@ s_DebugToggleColor0=0,0,0,0
 s_DebugColorColor1=255,0,0,100
 s_DebugColorColor0=0,0,0,0
 
-s_VarGroup=1
-@IncludeVars=C:\Users\sahoo\OneDrive\Documents\Rainmeter\Skins\ACustomVisualizer\@Resources\Variables\Variable[#s_VarGroup].inc
-s_SettingsFile=C:\Users\sahoo\OneDrive\Documents\Rainmeter\Skins\ACustomVisualizer\@Resources\Variables\Variable[#s_VarGroup].inc
+s_VarGroup=3
+@IncludeVars=#@#Variables\Variable[#s_VarGroup].inc
+s_SettingsFile=#@#\Variables\Variable[#s_VarGroup].inc
