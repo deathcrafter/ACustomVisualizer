@@ -114,9 +114,7 @@ function CreateMeasures {
 
     $varPath = $RmAPI.VariableStr('@')
 
-    $measureHash=AssignMeasures -groupCount $groupCount
-
-    $measureIndex=1
+    $measureArray=PrepareMeasures -groupCount $groupCount
 
     $measureCount = DecideBands -groupCount $groupCount
     
@@ -124,48 +122,26 @@ function CreateMeasures {
 
     $RmAPI.Log('Creating measures...') 
 
-    for ($i=0; $i -lt $groupCount; $i++) {
-        $barCount = $RmAPI.Variable("BarCountG$i")
-        $measureStart = $RmAPI.Variable("MeasureStartG$i")
-        $measureOrder = $RmAPI.Variable("XFlipG$i")
-        $measureContent=@"
+    $measureContent=@"
 "@
-        if ($measureOrder -eq 0) {
-            for ($j=0; $j -lt $barCount; $j++) {
-                $measureContent+=@"
 
-$($measureHash["G$i$j"])
+    $measureArray | ForEach-Object {
+        
+        $measureContent+=@"
+
+[Measure$_]
 Measure=Plugin
 Plugin=AudioAnalyzer
 Parent=MeasureAudioAnalyzer
 Type=Child
-Index=$($measureStart+$j)
+Index=$_
 Channel=Auto
 HandlerName=MainFinalOutput
 Disabled=[#EditMode]
 
-"@       
-            }
-        }else{
-            for ($j=0; $j -lt $barCount; $j++) {
-                $measureContent+=@"
-
-$($measureHash["G$i$j"])
-Measure=Plugin
-Plugin=AudioAnalyzer
-Parent=MeasureAudioAnalyzer
-Type=Child
-Index=$(($measureStart+$barCount-1)-$j)
-Channel=Auto
-HandlerName=MainFinalOutput
-Disabled=[#EditMode]
-
-"@       
-            }
-        }
-        $measureIndex+=$barCount
-        $measureContent | Out-File -FilePath $($varPath+"Measures\Measure$i.inc")
+"@
     }
+    $measureContent | Out-File -FilePath $($varPath+"Measure$i.inc")
     $RmAPI.Log('Successfully created measures')
 }
 
@@ -183,8 +159,26 @@ function DecideBands {
     $b=$measureCount | Measure-Object -Maximum
     return $b.Maximum
 }
+function PrepareMeasures {
+    param(
+        [Parameter(mandatory=$true)]
+        $groupCount
+    )
+    $measure=@()
+    for ($i=0; $i -lt $groupCount; $i++) {
+        $barCount = $RmAPI.Variable("BarCountG$i")
+        $measureStart = $RmAPI.Variable("MeasureStartG$i")
+        for ($j=0; $j -lt $barCount; $j++) {
+            if ($measure -notcontains $j+$measureStart) {
+            $measure+=$j+$measureStart
+            }
+        }
+    }
+    return $measure
+}
 function AssignMeasures {
-#This function assigns "key","value" pairs to 'measureHash' hashtable in MakeVisualizers and CreateMeasures function.
+#This function assigns "key","value" pairs to 'measureHash' hashtable in MakeVisualizers.
+#This also takes care of X-Flip.
     param(
         [Parameter(Mandatory = $true)]
         $groupCount
@@ -192,8 +186,14 @@ function AssignMeasures {
     $measure=[ordered]@{}
     for ($i=0; $i -lt $groupCount; $i++) {
         $barCount = $RmAPI.Variable("BarCountG$i")
+        $measureStart = $RmAPI.Variable("MeasureStartG$i")
+        $flipBool = $RmAPI.Variable("XFlipG$i")
         for ($j=0; $j -lt $barCount; $j++) {
-            $measure.Add($('G'+"$i"+"$j"), "[Measure$("$i" + 'G')$j]")
+            if ($flipBool -eq 0) {
+                $measure.Add($('G'+"$i"+"$j"), "[Measure$($j+$measureStart)]")
+            } else {
+                $measure.Add($('G'+"$i"+"$j"), "[Measure$(($measureStart+$barCount-1)-$j)]")
+            }
         }
     }
     return $measure
@@ -214,7 +214,6 @@ function PrepareIncludes{
     for ($i=0; $i -lt $groupCount; $i++) {
         $includeVisualizer+=@"
 
-@includeMeasureG$i=#@#Measures\Measure$i.inc
 @includeVisualizerG$i=#@#Visualizers\Visualizer$i.inc
 "@
         $includeVariables+=@"
@@ -238,11 +237,11 @@ function PrepareBackup {
     New-Item -Path $($skinPath + "@Backup\$directory") -Name "Measures" -ItemType "Directory"
     $RmAPI.Log('Backing up...')
     Copy-Item -Path $($varPath+'Variables\*.inc') -Destination $($skinPath+"@Backup\$directory\Variables") -Recurse
-    Start-Sleep -Milliseconds 200
+     
     Copy-Item -Path $($varPath+'Visualizers\*.inc') -Destination $($skinPath+"@Backup\$directory\Visualizers") -Recurse
-    Start-Sleep -Milliseconds 200
+    
     Copy-Item -Path $($varPath+'Measures\*.inc') -Destination $($skinPath+"@Backup\$directory\Measures") -Recurse
-    Start-Sleep -Milliseconds 200
+    
     Copy-Item -Path $($varPath+'*.inc') -Destination $($skinPath+"@Backup\$directory") -Recurse
     $RmAPI.Log('Backup complete!')
     Purge
