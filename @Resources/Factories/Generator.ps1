@@ -38,13 +38,15 @@ function CreateVariables{
 
     $existingCount = (Get-ChildItem -Path $($varPath + 'Variables')).Count
 
+    $existingFile = Get-ChildItem -Path $($varPath + 'Variables') -Name
+
 #Creates variables for each group.
     for ($i=$existingCount; $i -lt $groupCount; $i++) {
+        if ($existingFile -notcontains "Variable$i.inc") {
         $variables=@"
 [Variables]
-Group=$i
-XG$i=6R
-YG$i=r
+XG$i=$(90*$i)
+YG$i=0
 MeasureStartG$i=1
 BarCountG$i=5
 HeightG$i=300
@@ -59,11 +61,13 @@ ColorG$i=150, 200, 250
 GradientG$i=180 | 255,0,0;0.0 | 150,200,250;1.0
 GradientBoolG$i=0
 "@
+        }
         $variables | Out-File -FilePath $($varPath+"Variables\Variable$i.inc")
     }
     $RmAPI.Log('Successfully created variables.')
 }
 
+$shapeNum=@()
 function MakeVisualizers {
     $varPath = $RmAPI.VariableStr('@')
 
@@ -240,8 +244,6 @@ function PrepareBackup {
      
     Copy-Item -Path $($varPath+'Visualizers\*.inc') -Destination $($skinPath+"@Backup\$directory\Visualizers") -Recurse
     
-    Copy-Item -Path $($varPath+'Measures\*.inc') -Destination $($skinPath+"@Backup\$directory\Measures") -Recurse
-    
     Copy-Item -Path $($varPath+'*.inc') -Destination $($skinPath+"@Backup\$directory") -Recurse
     $RmAPI.Log('Backup complete!')
     Purge
@@ -265,10 +267,11 @@ function CompletePurge {
     $varPath = $RmAPI.VariableStr('@')
     PrepareBackup
     $RmAPI.Log('Purging all files...')
-     
-    Remove-Item -Path $($varPath+"Variables\Variable$i.inc") -Force
-    Remove-Item -Path $($varPath+"Visualizers\Visualizer$i.inc") -Force
-    Remove-Item -Path $($varPath+"Measures\Measure$i.inc") -Force
+    $exclude = @('GlobalVariables.inc', 'EditModeVars.inc') 
+    Remove-Item -Path $($varPath+"Variables\*.inc") -Force
+    Remove-Item -Path $($varPath+"Visualizers\*.inc") -Force
+    Remove-Item -Path $($varPath+"Measures\*.inc") -Force
+    Remove-Item -Path $($varPath+"*.inc")  -Exclude $exclude -Force
     
     $RmAPI.Log('Purged all files successfully!')
 }
@@ -296,4 +299,120 @@ function ExitEditMode {
     $RmAPI.Bang("!WriteKeyValue Variables UpdateRate 16 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
     $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
     $RmAPI.Bang("!Refresh")
+}
+function AssignShapeNumbers {
+    param(
+        [Parameter(Mandatory=$true)]
+        $groupCount
+    )
+    $shapeNum=[ordered]@{}
+    $shapeNum.Add("G00", "")
+    $k=1
+    for ($i=0; $i -lt $groupCount; $i++) {
+        $barCount=$RmAPI.Variable("BarCountG$i")
+        for ($j = $(if($i -eq 0){1}else{0}); $j -lt $barCount; $j++) {
+            $k=$k+1
+            $shapeNum.Add("G$i$j", "$k")
+        }
+    }
+    for ($i=0; $i -lt $groupCount; $i++) {
+        $k=$k+1
+        $shapeNum.Add("C$i", "$k")
+    }
+    $shapeNum.Add("U", "$($k+1)")
+    return $shapeNum
+}
+function MakePermanentVisualizer {
+    $varPath = $RmAPI.VariableStr('@')
+
+    $groupCount = $RmAPI.Variable('GroupCount')
+
+    $measureHash = AssignMeasures -groupCount $groupCount
+
+    $shapeHash = AssignShapeNumbers -groupCount $groupCount
+
+    $RmAPI.Log('Creating permanent visualizer...')
+    $combine=[ordered]@{}
+    $unite=@"
+"@
+    $shapeContent=@"
+
+[Shape]
+Meter=Shape
+X=0
+Y=0
+"@
+
+    for ($i=0; $i -lt $groupCount;$i++) {
+        $RmAPI.Log("Getting variables for group$i")
+        $x=$RmAPI.Variable("XG$i")
+        $y=$RmAPI.Variable("YG$i")
+        $barCount=$RmAPI.Variable("BarCountG$i")
+        $height=$RmAPI.Variable("HeightG$i")
+        $width=$RmAPI.Variable("WidthG$i")
+        $gap=$RmAPI.Variable("GapG$i")
+        $strokeWidth=$RmAPI.Variable("StrokeWidthG$i")
+        $rounding=$RmAPI.Variable("RoundingG$i")
+        $angle=$RmAPI.Variable("AngleG$i")
+        $minimumHeight=$RmAPI.Variable("MinimumHeightG$i")
+        
+        $combineContent=@"
+"@
+        for ($j=0; $j -lt $barCount; $j++) {
+            
+            $shapeContent+=@"
+
+Shape$($shapeHash["G$i$j"])=Rectangle $($x+$j*($width+$gap)),$($y+$height+$strokeWidth), $width, (Clamp((-$height*$($measureHash["G$i$j"])), -$height, -$minimumHeight)), $rounding | StrokeWidth $strokeWidth
+"@
+            if ($j -eq 0) {
+                $shapeContent+=@"
+ | Fill LinearGradient1 MyGradient$i
+"@
+                $combineContent+=@"
+
+Shape$($shapeHash["C$i"])=Combine Shape$($shapeHash["G$i$j"])
+"@
+            }else{
+                $combineContent+=@"
+ | Union Shape$($shapeHash["G$i$j"])
+"@
+            }
+        }
+        $combineContent+=@"
+ | Rotate $angle, $x, $($y+$height+$strokeWidth)
+"@
+        $combine.Add("$i", "$combineContent")
+        $RmAPI.Log("Completed group$i...")
+    }
+    for ($i=0; $i -lt $groupCount; $i++) {
+        $gradient=$RmAPI.VariableStr("GradientG$i")
+        $shapeContent+=@"
+
+$($combine["$i"])
+MyGradient$i=$gradient
+"@
+        if ($i -eq 0) {
+            $unite+=@"
+
+Shape$($shapeHash["U"])=Combine Shape$($shapeHash["C$i"])
+"@
+        }else{
+            $unite+=@"
+ | Union Shape$($shapeHash["C$i"])
+"@
+        }
+        
+    }
+    if (0 -eq 1){
+        $shapeContent+=@"
+
+$unite
+"@
+    }
+    $shapeContent+=@"
+
+DynamicVariables=1
+"@
+    $RmAPI.Log('Completed!')
+    $shapeContent | Out-File -FilePath $($varPath+'Visualizer.inc')
 }
