@@ -15,7 +15,7 @@ s_Theme2Name=Slim
 s_ScrollTreshold=[#s_PanelH]
 s_ScrollRightPanel=0
 s_ScrollLeftPanel=0
-s_CurrentCategory=0
+s_CurrentCategory=2
 s_SettingsTheme=0
 
 ;@ | Name Generator | Icon [\xE9F5]
@@ -60,6 +60,6 @@ s_DebugToggleColor0=0,0,0,0
 s_DebugColorColor1=255,0,0,100
 s_DebugColorColor0=0,0,0,0
 
-s_VarGroup=2
+s_VarGroup=0
 @IncludeVars=#@#Variables\Variable[#s_VarGroup].inc
 s_SettingsFile=#@#\Variables\Variable[#s_VarGroup].inc

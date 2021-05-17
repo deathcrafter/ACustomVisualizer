@@ -6,17 +6,16 @@ function Craft{
     
     if ($initiated -eq 0) {
         PrepareBackup
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Milliseconds 100
         CreateVariables
-        Start-Sleep -Milliseconds 1000
+        Start-Sleep -Milliseconds 100
         PrepareIncludes
         $RmAPI.Bang("!WriteKeyValue Variables Initiated 1")
         $RmAPI.Bang("!Refresh")
         exit
     }else{
-        Start-Sleep -Milliseconds 500
         MakeVisualizers
-        Start-Sleep -Milliseconds 1000
+        Start-Sleep -Milliseconds 200
         CreateMeasures
         $RmAPI.Bang("!WriteKeyValue Variables Initiated 0")
         $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
@@ -107,6 +106,10 @@ Shape$($barCount + 1)=$($visCombine + " | Rotate [#AngleG$i], 0, (#HeightG$i#+[#
 Color0=Fill Color [#ColorG$i]
 Color1=Fill LinearGradient1 MyGradient
 MyGradient=[#GradientG$i]
+LeftMouseDownAction=[!SetVariable CurrentGroup $i][!SetVariable DiffX ([&MouseX]-#CURRENTCONFIGX#-[#XG$i])][!SetVariable DiffY ([&MouseY]-#CURRENTCONFIGY#-[#YG$i])][!EnableMeasure ShapeMover]
+LeftMouseUpAction=[!WriteKeyValue Variables XG$i [#XG$i] "#@#Variables\Variable$i.inc"][!WriteKeyValue Variables YG$i [#YG$i] "#@#Variables\Variable$i.inc"][!Refresh]
+MouseScrollUpAction=[!WriteKeyValue Variables AngleG$i ([#AngleG$i]+1) "#@#Variables\Variable$i.inc"][!Refresh]
+MouseScrollDownAction=[!WriteKeyValue Variables AngleG$i ([#AngleG$i]-1) "#@#Variables\Variable$i.inc"][!Refresh]
 DynamicVariables=1
 "@
         $visContent | Out-File -FilePath $($varPath+"Visualizers\Visualizer$i.inc")
@@ -283,7 +286,6 @@ function EnterEditMode{
         $RmAPI.Bang("!WriteKeyValue Variables MinimumHeightG$i `"[#*HeightG$i*]`" `"$($RmAPI.VariableStr('@')+"Variables\Variable$i.inc")`"")
     }
     $RmAPI.Bang("!WriteKeyValue Variables EditMode 1 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
-    $RmAPI.Bang("!WriteKeyValue Variables UpdateRate -1 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
     $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
     $RmAPI.Bang("!Refresh")
 }
@@ -296,7 +298,6 @@ function ExitEditMode {
     }
     Clear-Content -Path $($varPath + 'EditModeVars.inc') -Exclude '[Variables]'
     $RmAPI.Bang("!WriteKeyValue Variables EditMode 0 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
-    $RmAPI.Bang("!WriteKeyValue Variables UpdateRate 16 `"$($RmAPI.VariableStr('@')+"GlobalVariables.inc")`"")
     $RmAPI.Bang("!Refresh `"ACustomVisualizer\Visualizer`"")
     $RmAPI.Bang("!Refresh")
 }

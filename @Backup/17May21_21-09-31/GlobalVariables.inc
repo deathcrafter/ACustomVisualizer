@@ -2,7 +2,7 @@
 GroupCount=4
 EditMode=1
 UpdateRate=16
-Bands=5
+Bands=10
 ;@About | Name xxx
 ;@Topic | Name xxx
 ;@ | Name xxx
